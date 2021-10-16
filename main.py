@@ -6,17 +6,15 @@ import os
 per = 25
 pixelThreshold = 500
 
-roi = [[(278, 666), (1714, 754), 'text', 'doc']]
-
-# roi = [[(596, 218), (1206, 306), 'text', 'nomeLoja'],
-#        [(596, 308), (1158, 378), 'text', 'cnpj'],
-#        [(540, 908), (1386, 976), 'text', 'produto1'],
-#        [(1528, 978), (1742, 1056), 'text', 'valor1'],
-#        [(428, 1058), (1390, 1126), 'text', 'produto2'],
-#        [(1520, 1132), (1738, 1212), 'text', 'valor2'],
-#        [(424, 1214), (1110, 1288), 'text', 'produto3'],
-#        [(1566, 1290), (1742, 1364), 'text', 'valor3'],
-#        [(1580, 1472), (1790, 1548), 'text', 'valorTot']]
+roi = [[(596, 218), (1206, 306), 'text', 'nomeLoja'],
+       [(596, 308), (1158, 378), 'text', 'cnpj'],
+       [(540, 908), (1386, 976), 'text', 'produto1'],
+       [(1528, 978), (1742, 1056), 'text', 'valor1'],
+       [(428, 1058), (1390, 1126), 'text', 'produto2'],
+       [(1520, 1132), (1738, 1212), 'text', 'valor2'],
+       [(424, 1214), (1110, 1288), 'text', 'produto3'],
+       [(1566, 1290), (1742, 1364), 'text', 'valor3'],
+       [(1580, 1472), (1790, 1548), 'text', 'valorTot']]
 
 
 imgQ = cv2.imread("cut_2_sem_qr_code.png")
@@ -73,11 +71,11 @@ for j,y in enumerate(myPicList):
         cv2.putText(imgShow,str(myData[x]),(r[0][0], r[0][1]),
                     cv2.FONT_HERSHEY_PLAIN,2.5,(0,0,255),4)
 
-    # with open('DataOutput.csv', 'a+') as f:
-    #
-    #     for data in myData:
-    #         f.write((str(data)+';'))
-    #     f.write('\n')
+
+    with open('arqOut.csv', 'a+') as f:
+        for data in myData:
+            f.write((str(data)+';'))
+        f.write('\n')
 
 
     imgShow = cv2.resize(imgShow,(w//3,h//3))
