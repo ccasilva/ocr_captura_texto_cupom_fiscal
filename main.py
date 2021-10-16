@@ -23,22 +23,26 @@ linhas, colunas, canais_img_colorida = imgQ.shape # Retorna um tupla
 
 #Detecte recursos ORB e descritores de computação.
 orb = cv2.ORB_create(1000)
-kp1, des1 = orb.detectAndCompute(imgQ,None)
+
+#Detecta os pontos
+pontosChave1, descritores1 = orb.detectAndCompute(imgQ, None)
 
 caminho = 'src'
 minhaListaDeArq = os.listdir(caminho)
 
-for j,y in enumerate(minhaListaDeArq):
-    img = cv2.imread(caminho + "/" + y)
-    kp2, des2 = orb.detectAndCompute(img,None)
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING)
-    matches = bf.match(des2,des1)
-    matches.sort(key= lambda x: x.distance)
-    good = matches[:int(len(matches)*(per/100))]
-    imgMatch = cv2.drawMatches(img,kp2,imgQ,kp1,good[:100],None,flags=2)
+for contador, valor in enumerate(minhaListaDeArq):
+    img = cv2.imread(caminho + "/" + valor)
+    pontosChave2, descritores2 = orb.detectAndCompute(img, None)
 
-    srcPoints = np.float32([kp2[m.queryIdx].pt for m in good]).reshape(-1,1,2)
-    dstPoints = np.float32([kp1[m.trainIdx].pt for m in good]).reshape(-1,1,2)
+    forcaBruta = cv2.BFMatcher(cv2.NORM_HAMMING)
+    correspondencia = forcaBruta.match(descritores2, descritores1)
+    correspondencia.sort(key= lambda x: x.distance)
+
+    calcPercCorrespondencia = correspondencia[:int(len(correspondencia) * (per / 100))]
+    #imgCorrespondencia = cv2.drawMatches(img, pontosChave2, imgQ, pontosChave1, calcPercCorrespondencia[:100], None, flags=2)
+
+    srcPoints = np.float32([pontosChave2[m.queryIdx].pt for m in calcPercCorrespondencia]).reshape(-1, 1, 2)
+    dstPoints = np.float32([pontosChave1[m.trainIdx].pt for m in calcPercCorrespondencia]).reshape(-1, 1, 2)
 
     M, _ = cv2.findHomography(srcPoints,dstPoints,cv2.RANSAC,5.0)
     imgScan = cv2.warpPerspective(img, M, (colunas, linhas))
@@ -46,42 +50,42 @@ for j,y in enumerate(minhaListaDeArq):
     imgShow = imgScan.copy()
     imgMask = np.zeros_like(imgShow)
 
-    myData = []
+    meusDados = []
 
-    print(f'################### Extraindo dados do formulário {j} ###################')
+    print(f'################### Extraindo dados do formulário {contador} ###################')
 
-    for x,r in enumerate(dados):
-        cv2.rectangle(imgMask, (r[0][0],r[0][1]),(r[1][0],r[1][1]),(0,255,0),cv2.FILLED)
+    for contadorDados, valorDados in enumerate(dados):
+        cv2.rectangle(imgMask, (valorDados[0][0], valorDados[0][1]), (valorDados[1][0], valorDados[1][1]), (0, 255, 0), cv2.FILLED)
         imgShow = cv2.addWeighted(imgShow,0.99,imgMask,0.1,0)
 
-        imgCrop = imgScan[r[0][1]:r[1][1], r[0][0]:r[1][0]]
+        imgCortada = imgScan[valorDados[0][1]:valorDados[1][1], valorDados[0][0]:valorDados[1][0]]
         # captura os dados e apresenta eles
-        cv2.imshow(str(x), imgCrop)
+        cv2.imshow(str(contadorDados), imgCortada)
 
-        if r[2] == 'text':
-            print(f'{r[3]} : {pytesseract.image_to_string(imgCrop)}')
-            myData.append(pytesseract.image_to_string(imgCrop))
-        if r[2] == 'box':
-            imgGray = cv2.cvtColor(imgCrop,cv2.COLOR_BGR2GRAY)
+        if valorDados[2] == 'text':
+            print(f'{valorDados[3]} : {pytesseract.image_to_string(imgCortada)}')
+            meusDados.append(pytesseract.image_to_string(imgCortada))
+        if valorDados[2] == 'box':
+            imgGray = cv2.cvtColor(imgCortada, cv2.COLOR_BGR2GRAY)
             imgThresh = cv2.threshold(imgGray,170,255,cv2.THRESH_BINARY_INV)[1]
             totalPixels = cv2.countNonZero(imgThresh)
             if totalPixels > limiteDePixel: totalPixels = 1
             else: totalPixels = 0
-            print(f'{r[3]} : {totalPixels}')
-            myData.append(totalPixels)
+            print(f'{valorDados[3]} : {totalPixels}')
+            meusDados.append(totalPixels)
 
-        cv2.putText(imgShow,str(myData[x]),(r[0][0], r[0][1]),
-                    cv2.FONT_HERSHEY_PLAIN,2.5,(0,0,255),4)
+        cv2.putText(imgShow, str(meusDados[contadorDados]), (valorDados[0][0], valorDados[0][1]),
+                    cv2.FONT_HERSHEY_PLAIN, 2.5, (0,0,255), 4)
 
 
     with open('arqOut.csv', 'a+') as f:
-        for data in myData:
+        for data in meusDados:
             f.write((str(data)+';'))
         f.write('\n')
 
 
     imgShow = cv2.resize(imgShow, (colunas // 3, linhas // 3))
-    print(myData)
-    cv2.imshow(y+"2",imgShow)
+    print(meusDados)
+    cv2.imshow(valor + "2", imgShow)
 
 cv2.waitKey(0)
