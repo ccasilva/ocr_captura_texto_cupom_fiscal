@@ -4,30 +4,32 @@ import numpy as np
 import os
 
 per = 25
-pixelThreshold = 500
+limiteDePixel = 500
 
-roi = [[(596, 218), (1206, 306), 'text', 'nomeLoja'],
-       [(596, 308), (1158, 378), 'text', 'cnpj'],
-       [(540, 908), (1386, 976), 'text', 'produto1'],
-       [(1528, 978), (1742, 1056), 'text', 'valor1'],
-       [(428, 1058), (1390, 1126), 'text', 'produto2'],
-       [(1520, 1132), (1738, 1212), 'text', 'valor2'],
-       [(424, 1214), (1110, 1288), 'text', 'produto3'],
-       [(1566, 1290), (1742, 1364), 'text', 'valor3'],
-       [(1580, 1472), (1790, 1548), 'text', 'valorTot']]
+dados = [[(596, 218), (1206, 306), 'text', 'nomeLoja'],
+         [(596, 308), (1158, 378), 'text', 'cnpj'],
+         [(540, 908), (1386, 976), 'text', 'produto1'],
+         [(1528, 978), (1742, 1056), 'text', 'valor1'],
+         [(428, 1058), (1390, 1126), 'text', 'produto2'],
+         [(1520, 1132), (1738, 1212), 'text', 'valor2'],
+         [(424, 1214), (1110, 1288), 'text', 'produto3'],
+         [(1566, 1290), (1742, 1364), 'text', 'valor3'],
+         [(1580, 1472), (1790, 1548), 'text', 'valorTot']]
 
-
+#carrega uma imagem do arquivo especificado e a devolve
 imgQ = cv2.imread("cut_2_sem_qr_code.png")
-h,w,c = imgQ.shape
 
+linhas, colunas, canais_img_colorida = imgQ.shape # Retorna um tupla
+
+#Detecte recursos ORB e descritores de computação.
 orb = cv2.ORB_create(1000)
 kp1, des1 = orb.detectAndCompute(imgQ,None)
 
-path = 'src'
-myPicList = os.listdir(path)
+caminho = 'src'
+minhaListaDeArq = os.listdir(caminho)
 
-for j,y in enumerate(myPicList):
-    img = cv2.imread(path +"/"+y)
+for j,y in enumerate(minhaListaDeArq):
+    img = cv2.imread(caminho + "/" + y)
     kp2, des2 = orb.detectAndCompute(img,None)
     bf = cv2.BFMatcher(cv2.NORM_HAMMING)
     matches = bf.match(des2,des1)
@@ -39,7 +41,7 @@ for j,y in enumerate(myPicList):
     dstPoints = np.float32([kp1[m.trainIdx].pt for m in good]).reshape(-1,1,2)
 
     M, _ = cv2.findHomography(srcPoints,dstPoints,cv2.RANSAC,5.0)
-    imgScan = cv2.warpPerspective(img,M,(w,h))
+    imgScan = cv2.warpPerspective(img, M, (colunas, linhas))
 
     imgShow = imgScan.copy()
     imgMask = np.zeros_like(imgShow)
@@ -48,7 +50,7 @@ for j,y in enumerate(myPicList):
 
     print(f'################### Extraindo dados do formulário {j} ###################')
 
-    for x,r in enumerate(roi):
+    for x,r in enumerate(dados):
         cv2.rectangle(imgMask, (r[0][0],r[0][1]),(r[1][0],r[1][1]),(0,255,0),cv2.FILLED)
         imgShow = cv2.addWeighted(imgShow,0.99,imgMask,0.1,0)
 
@@ -63,7 +65,7 @@ for j,y in enumerate(myPicList):
             imgGray = cv2.cvtColor(imgCrop,cv2.COLOR_BGR2GRAY)
             imgThresh = cv2.threshold(imgGray,170,255,cv2.THRESH_BINARY_INV)[1]
             totalPixels = cv2.countNonZero(imgThresh)
-            if totalPixels > pixelThreshold: totalPixels = 1
+            if totalPixels > limiteDePixel: totalPixels = 1
             else: totalPixels = 0
             print(f'{r[3]} : {totalPixels}')
             myData.append(totalPixels)
@@ -78,7 +80,7 @@ for j,y in enumerate(myPicList):
         f.write('\n')
 
 
-    imgShow = cv2.resize(imgShow,(w//3,h//3))
+    imgShow = cv2.resize(imgShow, (colunas // 3, linhas // 3))
     print(myData)
     cv2.imshow(y+"2",imgShow)
 
